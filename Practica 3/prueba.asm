@@ -6,6 +6,7 @@ usac     db "Universidad de San Carlos de Guatemala",0a,"$"
 facultad db "Facultad de Ingenieria",0a,"$"
 curso    db "Arquitectura de Computadoras y Ensambladores 1",0a,"$"
 seccion db "Seccion A",0a,"$"
+semestre db "Segundo Semestre 2023",0a,"$"
 nombre db "Nombre: Ramiro Agustin Telles Carcuz",0a,"$"
 carnet db "Carnet: 202010044",0a,"$"
 mensaje_enter db "Presione \'enter\' para continuar...",0a,"$"
@@ -39,27 +40,30 @@ buffer_nombre   db 20,00
 .STARTUP 
 inicio:
         mov DX, offset usac
-	    mov AH, 09
-	    int 21
-	    mov DX, offset facultad
-	    mov AH, 09
-	    int 21
-	    mov DX, offset curso
-	    mov AH, 09
-	    int 21
-	    mov DX, offset seccion
-		mov AH, 09
-		int 21
-		;;
-		mov DX, offset saltoLinea
-		mov AH,09
-		int 21
-		mov DX, offset nombre
-		mov AH, 09
-		int 21
-		mov DX, offset carnet
-		mov AH,09 
-		int 21
+	mov AH, 09
+	int 21
+	mov DX, offset facultad
+	mov AH, 09
+	int 21
+	mov DX, offset curso
+	mov AH, 09
+	int 21
+	mov DX, offset seccion
+	mov AH, 09
+	int 21
+        mov DX, offset semestre
+	mov AH, 09
+	int 21
+	;;
+	mov DX, offset saltoLinea
+	mov AH,09
+	int 21
+	mov DX, offset nombre
+	mov AH, 09
+	int 21
+	mov DX, offset carnet
+	mov AH,09 
+	int 21
 
 
 	
