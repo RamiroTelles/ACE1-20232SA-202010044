@@ -1,9 +1,21 @@
+JUGADOR		   equ 01
+ACERA          equ 02
+CARRIL         equ 03
+CARRO          equ 04
+CAMION         equ 05
+
 .MODEL small
 .RADIX 16
 .STACK
 .DATA
-x_jugador dw 0138
-y_jugador dw 00C0
+x_jugador dw 0008
+y_jugador dw 0008
+
+x_temp dw 0000
+y_temp dw 0000
+
+mensaje_nose db "nose :/$"
+
 sprite_jugador db 00, 00, 00, 05, 05, 00, 00, 00 
                db 00, 00, 00, 05, 05, 00, 00, 05 
                db 00, 05, 05, 05, 05, 05, 05, 00 
@@ -11,7 +23,52 @@ sprite_jugador db 00, 00, 00, 05, 05, 00, 00, 00
                db 00, 00, 00, 05, 05, 00, 00, 00 
                db 00, 00, 05, 05, 05, 05, 00, 00 
                db 00, 00, 05, 00, 00, 05, 00, 00 
-               db 00, 05, 05, 00, 00, 05, 05, 00 
+               db 00, 05, 05, 00, 00, 05, 05, 00
+sprite_carril  db 13, 13, 13, 13, 13, 13, 13, 13 
+               db 13, 13, 13, 13, 13, 13, 13, 13 
+               db 13, 13, 13, 13, 13, 13, 13, 13 
+               db 13, 13, 13, 13, 13, 13, 13, 13 
+               db 13, 13, 13, 13, 13, 13, 13, 13 
+               db 13, 13, 13, 13, 13, 13, 13, 13 
+               db 13, 13, 13, 13, 13, 13, 13, 13 
+               db 1f, 1f, 13, 13, 1f, 1f, 13, 13 
+sprite_acera db 17, 17, 17, 17, 17, 17, 17, 17 
+                db 17, 17, 17, 1a, 17, 17, 17, 17 
+                db 17, 17, 17, 1a, 17, 17, 17, 17 
+                db 17, 17, 17, 1a, 17, 17, 17, 17 
+                db 17, 17, 17, 1a, 17, 17, 17, 17 
+                db 17, 17, 17, 1a, 17, 17, 17, 17 
+                db 17, 17, 17, 1a, 17, 17, 17, 17 
+                db 17, 17, 17, 17, 17, 17, 17, 17 
+
+mapaJuego 	db 3e8 dup (00)
+
+;;mapaJuego db 00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02
+;;			db 00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00
+			
+
 .CODE
 .STARTUP
 		;; ingreso al modo de video 13h
@@ -19,24 +76,16 @@ sprite_jugador db 00, 00, 00, 05, 05, 00, 00, 00
 		mov AH, 00
 		int 10
 		;; ...
-		mov SI, 0000
-		mov DI, 0000
-		mov AL,05
-		mov CX,0008
-		mov DX, offset sprite_jugador
-		mov SI, [x_jugador]
-		mov DI, [y_jugador]
-		mov BX, offset sprite_jugador
-		call pintar_sprite
-		;;mov AX, 
-
-
-        
+		call reiniciar_mapa
+		
+		call imprimir_mapa
+		
 
 
 		;; ...
 		;;
 infinito:
+		
 		jmp infinito
 		jmp fin
 
@@ -61,28 +110,13 @@ pintar_pixel:
 		pop DS
 		ret
 
-;; SI -> sprite
-;; DX - x
-;; DI - y
 
-;;pintar_sprite:
-		mov CL,08
-		mov CH, 08
-;;ciclo_filas_sprite:
-;;		dec CL
-;;		je final_pintarSprite 
-;;ciclo_columnas_sprite:
 
-		
-		
-;;		ret
 
-;; SI - x
-;; DI - y
 ;; BX - sprite		
 pintar_sprite:
-		;;mov SI, [x_jugador]
-		;;mov DI, [y_jugador]
+		mov SI, [x_temp]
+		mov DI, [y_temp]
 		;;mov BX, offset sprite_jugador
 		xchg BP, CX
 		mov CX, 0000
@@ -105,10 +139,155 @@ ciclo_columnas:
 		;;; incremento y
 		inc DI
 		;;; reinicio x
-		mov SI, [x_jugador]
+		mov SI, [x_temp]
 		xchg BP, CX
 		loop ciclo_filas
 		ret
+
+;; SI - x
+;; DI - y
+;;CL - tipo
+
+colocar_mapa:
+		mov BX,0000
+		mov BX,DI
+		mov AX, 0028
+		mul BX
+		add AX,SI
+		push DI
+		mov DI, offset mapaJuego
+		add DI,AX
+		mov [DI],CL
+		pop DI
+		ret
+
+;; SI - x
+;; DI - Y
+;;salida: CL - tipo
+
+obtener_mapa:
+		mov BX,0000
+		mov BX,DI
+		mov AX, 0028
+		mul BX
+		add AX,SI
+		push DI
+		mov DI, offset mapaJuego
+		add DI,AX
+		mov CL,[DI]
+		pop DI
+		ret
+
+reiniciar_mapa:
+		
+		mov SI,0000
+		mov DI, 0001
+		call colocar_filaAcera
+		
+reiniciar_mapa2:
+		inc DI
+		mov SI,0000
+		call colocar_filaCarril
+		cmp DI,0016
+		jne reiniciar_mapa2
+		inc DI
+		mov SI,0000
+		call colocar_filaAcera
+		mov SI,0014
+		mov DI,0017
+		mov CL,01
+		call colocar_mapa
+		
+		ret
+
+
+
+
+colocar_filaAcera:
+		mov CX,0028	
+colocar_filaAcera2:
+		push CX
+		mov CL,02
+		call colocar_mapa
+		pop CX
+		inc SI
+		loop colocar_filaAcera2
+		ret
+
+colocar_filaCarril:
+		mov CX,0028	
+colocar_filaCarril2:
+		push CX
+		mov CL,03
+		call colocar_mapa
+		pop CX
+		inc SI
+		loop colocar_filaCarril2
+		ret
+
+imprimir_mapa:
+		mov SI,0000
+		mov DI,0001
+		mov CX,0017
+imprimir_mapa2:
+		xchg BP,CX
+		mov CX,0028
+imprimir_mapa3:
+		push CX
+		call obtener_mapa
+		push SI
+		mov BX, SI
+		mov AX, 0008
+		mul BX
+		mov SI, offset x_temp
+		mov [SI],AX
+		push DI
+		mov BX,DI
+		mov AX,0008
+		mul BX
+		mov DI, offset y_temp
+		mov [DI],AX
+		cmp CL,JUGADOR
+		je pintar_jugador
+		cmp CL,ACERA
+		je pintar_acera
+		cmp CL, CARRIL
+		je pintar_carril
+imprimir_mapa4:
+		pop DI
+		pop SI
+		pop CX
+		inc SI
+		loop imprimir_mapa3
+		mov SI,0000
+		inc DI
+		xchg BP,CX
+		loop imprimir_mapa2
+		ret
+
+
+		
+pintar_jugador:
+		mov BX, offset sprite_jugador
+		push BP
+		call pintar_sprite
+		pop BP
+		jmp imprimir_mapa4
+
+pintar_acera:
+		mov BX, offset sprite_acera
+		push BP
+		call pintar_sprite
+		pop BP
+		jmp imprimir_mapa4
+
+pintar_carril:
+		mov BX, offset sprite_carril
+		push BP
+		call pintar_sprite
+		pop BP
+		jmp imprimir_mapa4
+
 
 
 
