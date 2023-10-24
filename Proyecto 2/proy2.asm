@@ -37,6 +37,9 @@ con_temp db 1a dup (00)
 userRol_temp db 00
 userBan_temp db 00
 
+
+
+
 menu0_m1 db "F1 iniciar Sesion",0a,"$"
 menu0_m2 db "F2 registrar Usuario",0a,"$"
 menu0_m3 db "F3 Salir",0a,"$"
@@ -66,6 +69,9 @@ m_3intentos1 db "Ha fallado mas de 3 intentos",0a,"$"
 m_3intentos2 db "Sistema bloqueado por 10 segundos",0a,"$"
 
 m_userNotFound db "Usuario no encontrado",0a,"$"
+
+m_userInvalid db "Nombre Usuario invalido",0a,"$"
+m_conInvalid db "Clave invalida",0a,"$"
 
 m_registrar db "reg",0a,"$"
 m_salir db "Saliendo del Programa",0a,"$"
@@ -509,25 +515,81 @@ cerrar_sesion:
 
 
 registar_user:
+		call limpiar_login
+		;;call limpiar_buff
 		call limpiar_pantalla
 		mov DH,00
 		mov DL,00
 		mov BH,00
 		mov AH,02
 		int 10
-		mov DX, offset m_registrar
+		
+		mov DX, offset m_ingresarUser
 		mov AH,09
 		int 21
-		mov SI, 05a0 
 
+		mov DX, offset buff_leer
+		mov AH,0a 
+		int 21
+
+		mov SI, offset buff_leer
+		call comprobar_usuario
+		shr AL,1
+		jc registar_user2
+
+		mov DX, offset m_userInvalid
+		mov AH,09
+		int 21
+
+		mov SI,05a4 
 		call sub_ret
+
+		
+		
+		
 		jmp menu0
 
 
+registar_user2:
+		mov SI, offset buff_leer
+		mov DI, offset user_temp
+		call copiar_cadena
+
+		call limpiar_buff
+
+		mov DX, offset m_ingresarContra
+		mov AH,09
+		int 21
+
+		mov DX, offset buff_leer
+		mov AH,0a 
+		int 21
+
+		mov SI, offset buff_leer
+		call comprobar_contra
+
+		shr AL,1
+		jc registar_user3
+
+		mov DX, offset m_conInvalid
+		mov AH,09
+		int 21
+
+		mov SI,05a0
+		call sub_ret
 
 
 
+		jmp menu0
 
+
+registar_user3:
+		mov DX,offset mensaje_nose
+		mov AH,09
+		int 21
+		mov SI,05a0
+		call sub_ret
+		jmp menu0
 
 
 
@@ -909,6 +971,142 @@ limpiar_buff2:
 		loop limpiar_buff2
 		ret
 		
+;; SI- buffer
+;; salida AL-01 si es válido
+;; AL-00 si no
+comprobar_contra:
+                mov BX,0000
+                mov DX,0000
+                inc SI
+                mov AL,[SI]
+                cmp AL, 0f
+                jb comprobar_contra_falso
+                cmp AL, 19
+                ja comprobar_contra_falso
+                mov CX,0000
+                mov CL,AL
+                inc CL
+comprobar_contra2:
+                dec CL
+                jz comprobar_contra_true
+                inc SI
+                mov AL,[SI]
+                cmp AL,"*"
+                jz comprobar_contra_Contar_esp
+                cmp AL,"_"
+                jz comprobar_contra_Contar_esp
+                cmp AL, "."
+                jz comprobar_contra_Contar_esp
+                cmp AL, "-"
+                jz comprobar_contra_Contar_esp
+                cmp AL, "+"
+                jz comprobar_contra_Contar_esp
+                cmp AL, "a"
+                jae comprobar_contra_min
+                cmp AL,"?"
+                jae comprobar_contra_may
+                jmp comprobar_contra_falso
+
+
+comprobar_contra_min:
+                cmp AL,"z"
+                jbe comprobar_contra_Contar_min
+                jmp comprobar_contra_falso
+
+comprobar_contra_may:
+                cmp AL,"Z"
+                jbe comprobar_contra_Contar_may
+                jmp comprobar_contra_falso       
+
+comprobar_contra_Contar_esp:
+                inc BL
+                jmp comprobar_contra2
+
+comprobar_contra_Contar_min:
+                inc BH
+                jmp comprobar_contra2
+
+comprobar_contra_Contar_may:
+                inc DL
+                jmp comprobar_contra2
+
+
+
+comprobar_contra_true:
+                cmp BL,01
+                jb comprobar_contra_falso
+                cmp BH,04
+                jb comprobar_contra_falso
+                cmp DL,03
+                jb comprobar_contra_falso
+                mov AL,01
+                ret
+
+comprobar_contra_falso:
+                mov AL,00
+                ret
+
+
+;;SI - buffer
+;;salida AL-01 si es válido
+;; AL-00 si no
+comprobar_usuario:
+                inc SI
+                mov AL,[SI]
+                cmp AL,08
+                jb comprobar_usuario_falso
+                cmp AL,14
+                ja comprobar_usuario_falso
+                mov CX,0000
+                mov CL,AL
+                inc SI
+
+                mov AL,[SI]
+                cmp AL,61
+                jb comprobar_usuario_falso
+                cmp AL,7a 
+                ja comprobar_usuario_falso
+                
+comprobar_usuario2:
+                dec CL
+                jz comprobar_usuario_true
+                inc SI
+                mov AL,[SI]
+                cmp AL,"."
+                je comprobar_usuario2
+                cmp AL,"-" 
+                je comprobar_usuario2
+                cmp AL,"_" 
+                je comprobar_usuario2
+                cmp AL,"a"
+                jae comprobar_usuario_letras
+comprobar_usuario3:
+                cmp AL,"0"
+                jae comprobar_usuario_num
+                jmp comprobar_usuario_falso
+
+
+comprobar_usuario_letras:
+                cmp AL,"z" 
+                jbe comprobar_usuario2
+                jmp comprobar_usuario3
+
+comprobar_usuario_num:
+                cmp AL,"9" 
+                jbe comprobar_usuario2
+                jmp comprobar_usuario_falso
+
+
+comprobar_usuario_true:
+                mov Al,01
+                ret
+
+
+comprobar_usuario_falso:
+                mov AL,00
+                ret
+
+
 
 
 
