@@ -25,6 +25,16 @@ carnet db "Carnet: 202010044",0a,0a,"$"
 usuarioAdmin_original db "rcarcuz$"
 contraAdmin_original db "202010044a$"
 
+file_users db "USRS.ACE",00
+
+handler dw 0000
+
+m_error1 db "Error al Crear el archivo, :(",0a,"$"
+m_error2 db "Error con el puntero del archivo",0a,"$"
+m_error3 db "Error al escribir en el archivo",0a,"$"
+m_error4 db "Error al cerrar el archivo",0a,"$"
+m_esc_true db "Se logró registrar al nuevo usuario",0a,"$"
+
 intentoContra db 00
 
 buff_leer db 1a,00
@@ -584,18 +594,94 @@ registar_user2:
 
 
 registar_user3:
-		mov DX,offset mensaje_nose
-		mov AH,09
-		int 21
+		mov SI, offset buff_leer
+		mov DI, offset con_temp
+		call copiar_cadena
+		
+		mov SI, offset userBan_temp
+		mov AL,00
+		mov [SI],AL
+		mov SI, offset userRol_temp
+		mov [SI],AL
+
+		call escribir_usuario
 		mov SI,05a0
 		call sub_ret
+
+
 		jmp menu0
 
 
 
+escribir_usuario:
+		mov AL,02
+		mov DX,offset file_users
+		mov AH,3d 
+		int 21
+		jc crear_archivo
+		jmp escribir_usuario2
+crear_archivo:
+		mov CX,0000
+		mov DX, offset file_users
+		mov AH,3c 
+		int 21
+		jc error1
+		mov handler,AX
+		jmp escribir_usuario2
+escribir_usuario2:
+		mov AL,02
+		mov BX,handler
+		mov CX,0000
+		mov DX,0000
+		mov AH,42
+		int 21
+		jc error2
+
+		mov BX,handler 
+		mov CX,0031
+		mov DX, offset user_temp
+		mov AH,40
+		int 21
+
+		jc error3
+escribir_usuario3:
+		mov BX,handler
+		mov AH,3e
+		int 21 
+		jc error4
+
+		mov DX,offset m_esc_true
+		mov AH,09
+		int 21
+
+		
+
+		ret
 
 
+error1:
+		mov DX,offset m_error1
+		mov AH,09
+		int 21
+		jmp fin
 
+error2:
+		mov DX,offset m_error2
+		mov AH,09
+		int 21
+		jmp fin
+
+error3:
+		mov DX,offset m_error3
+		mov AH,09
+		int 21
+		jmp fin
+
+error4:
+		mov DX,offset m_error4
+		mov AH,09
+		int 21
+		jmp fin
 
 
 
