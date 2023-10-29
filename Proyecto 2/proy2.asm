@@ -29,17 +29,29 @@ file_users db "USRS.ACE",00
 
 handler dw 0000
 
+
+m_error0 db "No se pudo abrir el archivo",0a,"$"
 m_error1 db "Error al Crear el archivo, :(",0a,"$"
 m_error2 db "Error con el puntero del archivo",0a,"$"
 m_error3 db "Error al escribir en el archivo",0a,"$"
 m_error4 db "Error al cerrar el archivo",0a,"$"
-m_esc_true db "Se logró registrar al nuevo usuario",0a,"$"
+m_error5 db "No se pudo leer el archivo",0a,"$"
+m_esc_true db "Se logro registrar al nuevo usuario",0a,"$"
 
 intentoContra db 00
 
 buff_leer db 1a,00
 			db 1a dup (00)
 
+;;buff_archivoLeerCant db 00
+buff_archivoLeer db 31 dup (00)
+
+buff_write1 db 00
+
+iterador2 dw 0000
+
+id_userTemp dw 0000
+user_temp2 db 15 dup(00)
 
 ;;estructura usuario 31h bytes
 user_temp db 15 dup (00)
@@ -60,6 +72,7 @@ menu1_m3 db "F3 Estadisticas Usuarios",0a,"$"
 menu1_m4 db "F4 ordenamientos",0a,"$"
 menu1_m5 db "F5 Promover",0a,"$"
 menu1_m6 db "F6 Cerrar Sesion",0a,"$"
+menu1_m7 db "F7 Desbloquear Usuarios",0a,"$"
 
 m_ultimasPartidas db "ultimas partidas",0a,"$"
 m_estUsers db "estadisticas Usuarios",0a,"$"
@@ -79,6 +92,8 @@ m_3intentos1 db "Ha fallado mas de 3 intentos",0a,"$"
 m_3intentos2 db "Sistema bloqueado por 10 segundos",0a,"$"
 
 m_userNotFound db "Usuario no encontrado",0a,"$"
+m_userBlock1 db "Usuario Bloqueado",0a,"$"
+m_userUnBlock1 db "Usuario Desbloqueado",0a,"$"
 
 m_userInvalid db "Nombre Usuario invalido",0a,"$"
 m_conInvalid db "Clave invalida",0a,"$"
@@ -193,15 +208,6 @@ mapaJuego 	db 3e8 dup (00)
 		mov AH,09
 		int 21
 
-		mov DH,03
-		mov DL,00
-		mov BH,00
-		mov AH,02
-		int 10
-		mov DX, offset seccion
-		mov AH,09
-		int 21
-
 		mov DH,04
 		mov DL,00
 		mov BH,00
@@ -210,6 +216,8 @@ mapaJuego 	db 3e8 dup (00)
 		mov DX, offset seccion
 		mov AH,09
 		int 21
+
+		
 
 		mov DH,05
 		mov DL,00
@@ -302,12 +310,20 @@ login:
 		mov DI, offset user_temp
 		call copiar_cadena
 
+		mov SI, offset buff_leer
+		mov DI, offset user_temp2
+		call copiar_cadena
+
 		mov SI, offset usuarioAdmin_original
 		mov DI, offset user_temp
 		call comparar_cadenas
 		shr AL,1
 		jc login_adminOriginal 
-		int 03
+		
+		call encontrar_User
+		shr AL,1
+		jc login2
+
 		mov DX,offset m_userNotFound
 		mov AH,09
 		int 21
@@ -319,6 +335,7 @@ login:
 		jmp menu0
 
 login_adminOriginal:
+		
 		mov SI, offset intentoContra
 		mov AL,00
 		mov [SI],AL
@@ -344,11 +361,13 @@ login_adminOriginal2:
 		mov DI, offset con_temp
 		call copiar_cadena
 
+		
+
 		mov SI, offset contraAdmin_original
 		mov DI, offset con_temp
 		call comparar_cadenas
 		shr AL,1
-		jc menuAdmin_original
+		jc menuAdmin_original0
 		mov DX, offset m_malContra
 		mov AH,09
 		int 21
@@ -377,6 +396,205 @@ login_adminOriginal2:
 
 		jmp menu0
 
+login2:
+		mov SI, offset buff_archivoLeer
+		mov AX, 0030
+		add SI,AX
+		mov AL, [SI]
+		cmp AL,01
+		je usuario_bloqueado1
+
+		mov BX,iterador2
+		mov id_userTemp,BX
+
+		mov SI, offset intentoContra
+		mov AL,00
+		mov [SI],AL
+login3:
+		call limpiar_pantalla
+		call limpiar_buff
+		
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+
+		mov DX, offset m_ingresarContra
+		mov AH,09
+		int 21
+
+		mov DX, offset buff_leer
+		mov AH,0a
+		int 21
+
+		mov SI, offset buff_leer
+		mov DI, offset con_temp
+		call copiar_cadena
+
+		mov SI, offset buff_archivoLeer
+		mov AX,0015
+		add SI,AX
+		mov DI, offset con_temp
+		call comparar_cadenas
+		shr AL,1
+		jc comprobar_rol
+		mov DX, offset m_malContra
+		mov AH,09
+		int 21
+
+		mov SI,05a0 
+		call sub_ret
+
+		mov SI,offset intentoContra
+		mov AL,[SI]
+		inc AL
+		mov [SI],AL
+		cmp AL,03
+		jne login3
+
+		mov DX, offset m_3intentos1
+		mov AH,09
+		int 21
+		
+		mov DX, offset m_3intentos2
+		mov AH,09
+		int 21
+		 
+		mov SI, iterador2
+		call bloquear_usuario
+		mov SI,383b 
+		call sub_ret
+
+
+		jmp menu0
+
+usuario_bloqueado1:
+		call limpiar_pantalla
+
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+
+		mov DX, offset m_userBlock1
+		mov AH,09
+		int 21
+
+		mov SI,05a0
+
+		call sub_ret
+		jmp menu0
+
+
+
+
+comprobar_rol:
+		mov SI, offset userRol_temp
+		mov BL,[SI]
+		cmp BL,03
+		je menuAdmin_original
+		mov SI, offset buff_archivoLeer
+		mov AX,002f 
+		add SI,AX
+		mov BL,[SI]
+		cmp BL,01
+		je menuAdminNormal 
+		jmp menuUser 
+
+menuUser:
+		call limpiar_pantalla
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+
+		mov DX, offset menu1_m1
+		mov AH,09
+		int 21
+
+		mov DX, offset menu1_m2
+		mov AH,09
+		int 21
+
+		mov DX, offset menu1_m6
+		mov AH,09
+		int 21
+
+		mov AH,00
+		int 16
+
+		cmp AH,3b
+		je iniciar_juego
+		cmp AH,3c 
+		je ultimasPartidas
+		cmp AH,40 
+		je cerrar_sesion
+
+
+		jmp menuUser
+
+menuAdminNormal:
+		call limpiar_pantalla
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+
+		mov DX, offset menu1_m1
+		mov AH,09
+		int 21
+
+		mov DX, offset menu1_m2
+		mov AH,09
+		int 21
+
+		mov DX, offset menu1_m3
+		mov AH,09
+		int 21
+
+		mov DX, offset menu1_m4
+		mov AH,09
+		int 21
+
+		
+		mov DX, offset menu1_m6
+		mov AH,09
+		int 21
+
+		mov DX, offset menu1_m7
+		mov AH,09
+		int 21
+
+		mov AH,00
+		int 16
+
+		cmp AH,3b
+		je iniciar_juego
+		cmp AH,3c 
+		je ultimasPartidas
+		cmp AH,3d 
+		je estadisticasUsuarios
+		cmp AH,3e 
+		je ordenamiento
+	
+		cmp AH,40 
+		je cerrar_sesion
+
+		cmp AH,41
+		je desbloquear_usuarios
+
+		jmp menuAdminNormal
+
+
+menuAdmin_original0:	
+		
+		mov AL,03
+		mov SI, offset userRol_temp
+		mov [SI],AL
 
 menuAdmin_original:
 		call limpiar_pantalla
@@ -410,6 +628,10 @@ menuAdmin_original:
 		mov AH,09
 		int 21
 
+		mov DX, offset menu1_m7
+		mov AH,09
+		int 21
+
 		mov AH,00
 		int 16
 
@@ -425,6 +647,8 @@ menuAdmin_original:
 		je promoverUsuarios
 		cmp AH,40 
 		je cerrar_sesion
+		cmp AH,41
+		je desbloquear_usuarios
 
 
 		jmp menuAdmin_original
@@ -444,7 +668,7 @@ ultimasPartidas:
 
 		mov SI, 05a0
 		call sub_ret
-		jmp menuAdmin_original
+		jmp comprobar_rol
 
 estadisticasUsuarios:
 		call limpiar_pantalla
@@ -461,7 +685,7 @@ estadisticasUsuarios:
 
 		mov SI, 05a0
 		call sub_ret
-		jmp menuAdmin_original
+		jmp comprobar_rol
 
 ordenamiento:
 		call limpiar_pantalla
@@ -478,9 +702,36 @@ ordenamiento:
 
 		mov SI, 05a0
 		call sub_ret
-		jmp menuAdmin_original
+		jmp comprobar_rol
 
 promoverUsuarios:
+		call limpiar_pantalla
+		call limpiar_buff
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+
+		mov DX, offset m_ingresarUser
+		mov AH,09
+		int 21
+
+		mov DX,offset buff_leer
+		mov AH,0a 
+		int 21
+
+		mov SI, offset buff_leer
+		mov DI, offset user_temp
+		call copiar_cadena
+
+		call encontrar_User
+		shr AL,1
+		jnc promoverUsuarios3
+promoverUsuarios2:
+		mov SI,iterador2
+		call promover_usuario
+
 		call limpiar_pantalla
 
 		mov DH,00
@@ -489,15 +740,98 @@ promoverUsuarios:
 		mov AH,02
 		int 10
 
-		mov DX, offset m_promover
+		mov DX, offset m_userUnBlock1
 		mov AH,09
 		int 21
 
 		mov SI, 05a0
+		 
 		call sub_ret
-		jmp menuAdmin_original
+		jmp comprobar_rol
+
+promoverUsuarios3:
+		call limpiar_pantalla
+
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+
+		mov DX, offset m_userNotFound
+		mov AH,09
+		int 21
+
+		mov SI, 05a0
+		
+		call sub_ret
+
+		jmp comprobar_rol
 
 
+desbloquear_usuarios:
+		call limpiar_pantalla
+		call limpiar_buff
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+
+		mov DX, offset m_ingresarUser
+		mov AH,09
+		int 21
+
+		mov DX,offset buff_leer
+		mov AH,0a 
+		int 21
+
+		mov SI, offset buff_leer
+		mov DI, offset user_temp
+		call copiar_cadena
+
+		call encontrar_User
+		shr AL,1
+		jnc desbloquear_usuarios3
+desbloquear_usuarios2:
+		mov SI,iterador2
+		call desbloquear_usuario
+
+		call limpiar_pantalla
+
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+
+		mov DX, offset m_userUnBlock1
+		mov AH,09
+		int 21
+
+		mov SI, 05a0
+		 
+		call sub_ret
+		jmp comprobar_rol
+
+desbloquear_usuarios3:
+		call limpiar_pantalla
+
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+
+		mov DX, offset m_userNotFound
+		mov AH,09
+		int 21
+
+		mov SI, 05a0
+		
+		call sub_ret
+
+		jmp comprobar_rol
 
 cerrar_sesion:
 		call limpiar_pantalla
@@ -511,6 +845,11 @@ cerrar_sesion:
 		mov DX, offset m_cerrarSesion
 		mov AH,09
 		int 21
+
+		mov AL,00
+		mov SI, offset userRol_temp
+		mov [SI],AL
+
 
 		mov SI, 05a0
 		call sub_ret
@@ -585,7 +924,7 @@ registar_user2:
 		mov AH,09
 		int 21
 
-		mov SI,05a0
+		mov SI,35a0
 		call sub_ret
 
 
@@ -605,7 +944,7 @@ registar_user3:
 		mov [SI],AL
 
 		call escribir_usuario
-		mov SI,05a0
+		mov SI,35a0
 		call sub_ret
 
 
@@ -619,6 +958,7 @@ escribir_usuario:
 		mov AH,3d 
 		int 21
 		jc crear_archivo
+		mov handler,AX
 		jmp escribir_usuario2
 crear_archivo:
 		mov CX,0000
@@ -649,6 +989,14 @@ escribir_usuario3:
 		mov AH,3e
 		int 21 
 		jc error4
+		call limpiar_pantalla
+
+		
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
 
 		mov DX,offset m_esc_true
 		mov AH,09
@@ -719,7 +1067,7 @@ iniciar_juego:
 		mov BH,00
 		mov AH,02
 		int 10
-		mov DX, offset user_temp
+		mov DX, offset user_temp2
 		mov AH,09
 		int 21
 
@@ -1018,6 +1366,13 @@ copiar_cadena2:
                 ret
 
 limpiar_login:
+		mov SI, offset userRol_temp
+		mov CL,00
+		mov [SI],CL
+
+		mov BX,0000
+		mov id_userTemp,BX
+
 		mov SI, offset buff_leer
 		mov CX,0000
 		mov CL,[SI]
@@ -1193,6 +1548,284 @@ comprobar_usuario_falso:
                 ret
 
 
+
+;;SI - Index        
+        
+buscarUsuario_usuario:
+	mov AL,02
+	mov DX,offset file_users
+	mov AH,3d 
+	int 21
+	jc error0
+        mov handler,AX
+	jmp buscarUsuario_usuario2
+buscarUsuario_usuario2:
+        mov CX,0000
+        mov AX,0031
+        mul SI
+        mov DX,AX
+        mov AX,0000
+        mov AH,42
+        mov BX, handler
+        int 21
+        jc error2
+        
+        mov BX, handler
+        mov CX, 0031
+        mov DX,offset buff_archivoLeer
+        mov AH,3f 
+        int 21
+        jc error5
+        
+        ;mov DX, offset buff_archivoLeer
+        ;mov AH,09
+        ;int 21
+        
+        ;mov BX,0015 
+        ;add DX,BX
+
+        
+        ;mov AH,09
+        ;int 21
+        ret
+
+
+        
+
+
+
+
+
+
+
+
+error0:
+        mov DX,offset m_error0
+        mov AH,09
+        int 21
+        jmp fin
+
+
+
+error5:
+        mov DX,offset m_error5
+        mov AH,09
+        int 21
+        jmp fin
+
+
+;;poner la cadena del usuario a buscar en user_temp
+;; salida iterador2-> id User
+;; AL->01 si si lo encontró
+;;AL -> 00 si no
+
+encontrar_User:
+        mov BX,0000
+        mov iterador2,BX
+encontrar_User2:
+        call limpiar_buff_archivoLeer
+        mov SI, iterador2
+        call buscarUsuario_usuario
+        
+        mov DI, offset buff_archivoLeer
+        mov AL,[DI]
+        cmp AL,00
+        je encontrar_User_false 
+
+        mov SI, offset user_temp
+        mov DI, offset buff_archivoLeer
+        call comparar_cadenas
+        shr AL,1
+        jc encontrar_User_true
+        mov BX,iterador2
+        inc BX
+        mov iterador2,BX
+        jmp encontrar_User2
+
+
+encontrar_User_true:
+        mov AL,01
+        ret
+
+encontrar_User_false:
+        mov Al,00
+        ret
+
+
+
+;; SI-index
+
+bloquear_usuario:
+        mov AL,02
+	mov DX,offset file_users
+	mov AH,3d 
+	int 21
+	jc error0
+        mov handler,AX
+	jmp bloquear_usuario2
+bloquear_usuario2:
+        mov CX,0000
+        mov AX,0031
+        mul SI
+        mov DX,AX
+        mov AX,0030
+        add DX,AX
+        mov AX,0000
+        mov AH,42
+        mov BX, handler
+        int 21
+        
+
+        mov DI, offset buff_write1
+        mov AL,01
+        mov [DI],Al
+        mov DX, offset buff_write1
+        mov CX,0001
+        mov BX,handler
+        mov AH,40
+        int 21
+        jc error3
+
+		mov BX,handler
+		mov AH,3e
+		int 21 
+		jc error4
+
+        ret
+
+;; SI-index
+
+desbloquear_usuario:
+        mov AL,02
+	mov DX,offset file_users
+	mov AH,3d 
+	int 21
+	jc error0
+        mov handler,AX
+	jmp desbloquear_usuario2
+desbloquear_usuario2:
+        mov CX,0000
+        mov AX,0031
+        mul SI
+        mov DX,AX
+        mov AX,0030
+        add DX,AX
+        mov AX,0000
+        mov AH,42
+        mov BX, handler
+        int 21
+        
+
+        mov DI, offset buff_write1
+        mov AL,00
+        mov [DI],Al
+        mov DX, offset buff_write1
+        mov CX,0001
+        mov BX,handler
+        mov AH,40
+        int 21
+        jc error3
+
+		mov BX,handler
+		mov AH,3e
+		int 21 
+		jc error4
+
+        ret
+
+;; SI-index
+
+promover_usuario:
+        mov AL,02
+	mov DX,offset file_users
+	mov AH,3d 
+	int 21
+	jc error0
+        mov handler,AX
+	jmp promover_usuario2
+promover_usuario2:
+        mov CX,0000
+        mov AX,0031
+        mul SI
+        mov DX,AX
+        mov AX,002f
+        add DX,AX
+        mov AX,0000
+        mov AH,42
+        mov BX, handler
+        int 21
+        
+
+        mov DI, offset buff_write1
+        mov AL,01
+        mov [DI],Al
+        mov DX, offset buff_write1
+        mov CX,0001
+        mov BX,handler
+        mov AH,40
+        int 21
+        jc error3
+
+		mov BX,handler
+		mov AH,3e
+		int 21 
+		jc error4
+
+        ret
+
+;; SI-index
+
+despromover_usuario:
+        mov AL,02
+	mov DX,offset file_users
+	mov AH,3d 
+	int 21
+	jc error0
+        mov handler,AX
+	jmp despromover_usuario2
+despromover_usuario2:
+        mov CX,0000
+        mov AX,0031
+        mul SI
+        mov DX,AX
+        mov AX,002f
+        add DX,AX
+        mov AX,0000
+        mov AH,42
+        mov BX, handler
+        int 21
+        
+
+        mov DI, offset buff_write1
+        mov AL,00
+        mov [DI],Al
+        mov DX, offset buff_write1
+        mov CX,0001
+        mov BX,handler
+        mov AH,40
+        int 21
+        jc error3
+
+		mov BX,handler
+		mov AH,3e
+		int 21 
+		jc error4
+
+        ret
+
+
+limpiar_buff_archivoLeer:
+        mov SI, offset buff_archivoLeer
+        mov AL,00
+limpiar_buff_archivoLeer2:
+        mov AH,[SI]
+        cmp AH,00
+        je limpiar_buff_archivoLeer3
+        mov [SI],AL
+        inc SI
+        jmp limpiar_buff_archivoLeer2
+limpiar_buff_archivoLeer3:
+        ret
 
 
 
