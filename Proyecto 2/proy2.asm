@@ -6,6 +6,9 @@ CARRIL         equ 03
 CARRO1         equ 06
 CARRO2         equ 07
 CARRO3         equ 08
+CARRO1I         equ 09
+CARRO2I         equ 10
+CARRO3I         equ 11
 
 .MODEL small
 .RADIX 16
@@ -16,6 +19,9 @@ y_jugador dw 0017
 
 x_temp dw 0000
 y_temp dw 0000
+
+x_temp2	dw 0000
+y_temp2 dw 0000
 
 usac     db "Universidad de San Carlos de Guatemala",0a,"$"
 facultad db "Facultad de Ingenieria",0a,"$"
@@ -109,6 +115,8 @@ m_conInvalid db "Clave invalida",0a,"$"
 m_pausa1 db "F1 Resumir Partida",0a,"$"
 m_pausa2 db "F2 Volver a Menu Usuario",0a,"$"
 
+m_gameOver1 db "Game Over",0a,"$"
+m_gameOver2 db "Puntaje: ",0a,"$"
 
 m_registrar db "reg",0a,"$"
 m_salir db "Saliendo del Programa",0a,"$"
@@ -1205,7 +1213,12 @@ aumentar_puntos3:
 
 
 verificar_posJugador2:
-
+		call mover_carros3_1I
+		call mover_carros3_1D
+		call mover_carros2_1D
+		call mover_carros2_1I
+		call mover_carros1_1I
+		call mover_carros1_1D   
 		call imprimir_mapa
 		;mov SI,0018
 		;call sub_ret
@@ -1217,6 +1230,26 @@ infinito_final:
 iniciar_juego:
 		call limpiar_pantalla
 		call reiniciar_mapa
+
+		mov SI, offset vidasD
+		mov AL,03
+		mov [SI],AL
+
+		mov SI, offset vidas
+		add AL,"0"
+		mov [SI],AL
+		
+
+		mov SI, offset puntaje_tempD
+		mov AX,0000
+		mov [SI],AX
+
+		mov SI, offset puntaje_temp
+		mov AL,"0"
+		mov [SI],AL
+		inc SI
+		mov AL,"$"
+		mov [SI],AL
 
 		mov DH,00
 		mov DL,00
@@ -1413,6 +1446,293 @@ mover_jugador:
 		ret
 
 
+detectar_colision:
+		call obtener_mapa
+		cmp CL,JUGADOR
+		jne detectar_colision_fin 
+		push SI
+		mov SI, offset vidasD
+		mov BL, [SI]
+		dec BL
+		mov [SI],BL
+		cmp BL,00
+		je mostrar_gameOver
+		push DI
+		mov DI, 0017
+		mov SI, 0014
+		call mover_jugador
+
+		mov DI, offset vidasD
+		mov BL,[DI]
+		add BL,"0"
+		mov SI, offset vidas
+		mov [SI],BL
+		mov DH,00
+		mov DL,10
+		mov BH,00
+		mov AH,02
+		int 10
+		mov DX, offset vidas
+		mov AH,09
+		int 21
+		pop DI
+		pop SI
+detectar_colision_fin:
+		ret
+
+
+mostrar_gameOver:
+		call limpiar_pantalla
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+
+		mov DX, offset m_gameOver1
+		mov AH,09
+		int 21
+
+		mov DX, offset m_gameOver2
+		mov AH,09
+		int 21
+
+		mov DX, offset puntaje_temp
+		mov AH,09
+		int 21
+
+		mov SI,1c1d 
+		call sub_ret
+		jmp comprobar_rol
+
+
+
+
+mover_carros1_1D:
+		mov SI,0000
+		mov DI,0002
+		mov CX,0016
+mover_carros1_2D:
+		xchg BP,CX
+		mov CX,0028
+mover_carros1_3D:
+		push CX
+		call obtener_mapa
+		cmp CL,CARRO1
+		jne mover_carros1_4D
+		;;mover el carro
+		mov CL,CARRIL
+		call colocar_mapa
+		
+		inc SI
+		call detectar_colision
+		cmp SI,0028
+		jl mover_carros1_5D
+		mov SI,0000
+mover_carros1_5D:
+		mov CL,CARRO1
+		call colocar_mapa
+		
+mover_carros1_4D:
+		pop CX
+		inc SI
+		loop mover_carros1_3D
+		mov SI,0000
+		inc DI
+		xchg BP,CX
+		loop mover_carros1_2D
+		ret
+
+
+
+mover_carros1_1I:
+		mov SI,0027
+		mov DI,0002
+		mov CX,0016
+mover_carros1_2I:
+		xchg BP,CX
+		mov CX,0028
+mover_carros1_3I:
+		push CX
+		call obtener_mapa
+		cmp CL,CARRO1I
+		jne mover_carros1_4I
+		;;mover el carro
+		mov CL,CARRIL
+		call colocar_mapa
+		
+		dec SI
+		call detectar_colision
+		cmp SI,0000
+		jge mover_carros1_5I
+		mov SI,0027
+mover_carros1_5I:
+		mov CL,CARRO1I
+		call colocar_mapa
+		
+mover_carros1_4I:
+		pop CX
+		dec SI
+		loop mover_carros1_3I
+		mov SI,0027
+		inc DI
+		xchg BP,CX
+		loop mover_carros1_2I
+		ret	
+
+
+
+
+
+
+mover_carros2_1D:
+		mov SI,0000
+		mov DI,0002
+		mov CX,0016
+mover_carros2_2D:
+		xchg BP,CX
+		mov CX,0028
+mover_carros2_3D:
+		push CX
+		call obtener_mapa
+		cmp CL,CARRO2
+		jne mover_carros2_4D
+		;;mover el carro
+		mov CL,CARRIL
+		call colocar_mapa
+		
+		inc SI
+		call detectar_colision
+		cmp SI,0028
+		jl mover_carros2_5D
+		mov SI,0000
+mover_carros2_5D:
+		mov CL,CARRO2
+		call colocar_mapa
+		
+mover_carros2_4D:
+		pop CX
+		inc SI
+		loop mover_carros2_3D
+		mov SI,0000
+		inc DI
+		xchg BP,CX
+		loop mover_carros2_2D
+		ret
+
+
+
+mover_carros2_1I:
+		mov SI,0027
+		mov DI,0002
+		mov CX,0016
+mover_carros2_2I:
+		xchg BP,CX
+		mov CX,0028
+mover_carros2_3I:
+		push CX
+		call obtener_mapa
+		cmp CL,CARRO2I
+		jne mover_carros2_4I
+		;;mover el carro
+		mov CL,CARRIL
+		call colocar_mapa
+		
+		dec SI
+		call detectar_colision
+		cmp SI,0000
+		jge mover_carros2_5I
+		mov SI,0027
+mover_carros2_5I:
+		mov CL,CARRO2I
+		call colocar_mapa
+		
+mover_carros2_4I:
+		pop CX
+		dec SI
+		loop mover_carros2_3I
+		mov SI,0027
+		inc DI
+		xchg BP,CX
+		loop mover_carros2_2I
+		ret	
+
+
+mover_carros3_1D:
+		mov SI,0000
+		mov DI,0002
+		mov CX,0016
+mover_carros3_2D:
+		xchg BP,CX
+		mov CX,0028
+mover_carros3_3D:
+		push CX
+		call obtener_mapa
+		cmp CL,CARRO3
+		jne mover_carros3_4D
+		;;mover el carro
+		mov CL,CARRIL
+		call colocar_mapa
+		
+		inc SI
+		call detectar_colision
+		cmp SI,0028
+		jl mover_carros3_5D
+		mov SI,0000
+mover_carros3_5D:
+		mov CL,CARRO3
+		call colocar_mapa
+		
+mover_carros3_4D:
+		pop CX
+		inc SI
+		loop mover_carros3_3D
+		mov SI,0000
+		inc DI
+		xchg BP,CX
+		loop mover_carros3_2D
+		ret
+
+
+
+mover_carros3_1I:
+		mov SI,0027
+		mov DI,0002
+		mov CX,0016
+mover_carros3_2I:
+		xchg BP,CX
+		mov CX,0028
+mover_carros3_3I:
+		push CX
+		call obtener_mapa
+		cmp CL,CARRO3I
+		jne mover_carros3_4I
+		;;mover el carro
+		mov CL,CARRIL
+		call colocar_mapa
+		
+		dec SI
+		call detectar_colision
+		cmp SI,0000
+		jge mover_carros3_5I
+		mov SI,0027
+mover_carros3_5I:
+		mov CL,CARRO3I
+		call colocar_mapa
+		
+mover_carros3_4I:
+		pop CX
+		dec SI
+		loop mover_carros3_3I
+		mov SI,0027
+		inc DI
+		xchg BP,CX
+		loop mover_carros3_2I
+		ret	
+
+
+
+
 
 
 
@@ -1526,21 +1846,119 @@ reiniciar_mapa2:
 		mov CL,01
 		call colocar_mapa
 
-		mov SI,0010
-		mov DI,0010
+
+		;;colocando carros
+		mov SI,0000
+		mov DI,0002
+		mov CL,CARRO3I
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,0003
+		mov CL,CARRO2I
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,0004
 		mov CL,CARRO1
 		call colocar_mapa
 
-		mov SI,0011
-		mov DI,0011
-		mov CL,CARRO2
+		mov SI,0000
+		mov DI,0005
+		mov CL,CARRO2I
 		call colocar_mapa
 
-		mov SI,0012
-		mov DI,0012
+		mov SI,0000
+		mov DI,0006
 		mov CL,CARRO3
 		call colocar_mapa
 
+		mov SI,0000
+		mov DI,0007
+		mov CL,CARRO1
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,0008
+		mov CL,CARRO1
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,0009
+		mov CL,CARRO2I
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,000a
+		mov CL,CARRO3I
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,000b
+		mov CL,CARRO2
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,000c 
+		mov CL,CARRO3
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,000d
+		mov CL,CARRO1I
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,000e 
+		mov CL,CARRO1I
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,000f 
+		mov CL,CARRO2I
+		call colocar_mapa
+
+		mov SI,0000
+		inc DI
+		mov CL,CARRO2I
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,0010
+		mov CL,CARRO3
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,0011
+		mov CL,CARRO3
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,0012
+		mov CL,CARRO2I
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,0013
+		mov CL,CARRO1I
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,0014
+		mov CL,CARRO2
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,0015
+		mov CL,CARRO3
+		call colocar_mapa
+
+		mov SI,0000
+		mov DI,0016
+		mov CL,CARRO3I
+		call colocar_mapa
+
+	
 		ret
 
 
@@ -1602,6 +2020,12 @@ imprimir_mapa3:
 		je pintar_carro2
 		cmp CL,CARRO3
 		je pintar_carro3
+		cmp CL,CARRO1I
+		je pintar_carro1
+		cmp CL,CARRO2I
+		je pintar_carro2
+		cmp CL,CARRO3I
+		je pintar_carro3
 imprimir_mapa4:
 		pop DI
 		pop SI
@@ -1657,6 +2081,8 @@ pintar_carro3:
 		call pintar_sprite
 		pop BP
 		jmp imprimir_mapa4
+
+
 
 
 ;;SI- nn
