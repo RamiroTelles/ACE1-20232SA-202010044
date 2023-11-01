@@ -1,8 +1,11 @@
 JUGADOR		   equ 01
 ACERA          equ 02
 CARRIL         equ 03
-CARRO          equ 04
-CAMION         equ 05
+;CARRO          equ 04
+;CAMION         equ 05
+CARRO1         equ 06
+CARRO2         equ 07
+CARRO3         equ 08
 
 .MODEL small
 .RADIX 16
@@ -23,7 +26,7 @@ nombre db "Nombre: Ramiro Agustin Telles Carcuz",0a,"$"
 carnet db "Carnet: 202010044",0a,0a,"$"
 
 usuarioAdmin_original db "rcarcuz$"
-contraAdmin_original db "202010044a$"
+contraAdmin_original db "202010044A*$"
 
 file_users db "USRS.ACE",00
 
@@ -37,6 +40,9 @@ m_error3 db "Error al escribir en el archivo",0a,"$"
 m_error4 db "Error al cerrar el archivo",0a,"$"
 m_error5 db "No se pudo leer el archivo",0a,"$"
 m_esc_true db "Se logro registrar al nuevo usuario",0a,"$"
+
+mensajeE_div db "No se pueden mostrar numeros mas grandes que 2550",0a,"$"
+
 
 intentoContra db 00
 
@@ -73,6 +79,8 @@ menu1_m4 db "F4 ordenamientos",0a,"$"
 menu1_m5 db "F5 Promover",0a,"$"
 menu1_m6 db "F6 Cerrar Sesion",0a,"$"
 menu1_m7 db "F7 Desbloquear Usuarios",0a,"$"
+menu1_m8 db "F8 Resumir Partida",0a,"$"
+
 
 m_ultimasPartidas db "ultimas partidas",0a,"$"
 m_estUsers db "estadisticas Usuarios",0a,"$"
@@ -98,12 +106,16 @@ m_userUnBlock1 db "Usuario Desbloqueado",0a,"$"
 m_userInvalid db "Nombre Usuario invalido",0a,"$"
 m_conInvalid db "Clave invalida",0a,"$"
 
+m_pausa1 db "F1 Resumir Partida",0a,"$"
+m_pausa2 db "F2 Volver a Menu Usuario",0a,"$"
+
+
 m_registrar db "reg",0a,"$"
 m_salir db "Saliendo del Programa",0a,"$"
 
 mensaje_nose db "nose :/$"
 
-puntaje_temp db "0$"
+puntaje_temp db "0$",00,00,00,00,00
 
 puntaje_tempD dw 0000
 
@@ -144,6 +156,34 @@ sprite_acera db 17, 17, 17, 17, 17, 17, 17, 17
                 db 17, 17, 17, 1a, 17, 17, 17, 17 
                 db 17, 17, 17, 1a, 17, 17, 17, 17 
                 db 17, 17, 17, 17, 17, 17, 17, 17 
+
+sprite_carro1  db 13, 13, 13, 13, 13, 13, 13, 13 
+               db 13, 13, 13, 13, 13, 13, 13, 13 
+               db 02, 02, 02, 02, 02, 02, 02, 13 
+               db 02, 03, 02, 02, 02, 03, 02, 13 
+               db 02, 03, 02, 02, 02, 03, 02, 13 
+               db 02, 03, 02, 02, 02, 03, 02, 13 
+               db 02, 02, 02, 02, 02, 02, 02, 13 
+               db 1f, 1f, 13, 13, 1f, 1f, 13, 13
+
+sprite_carro2  db 13, 13, 13, 13, 13, 13, 13, 13 
+               db 13, 13, 13, 13, 13, 13, 13, 13 
+               db 06, 06, 06, 06, 06, 06, 06, 13 
+               db 06, 03, 06, 06, 06, 03, 06, 13 
+               db 06, 03, 06, 06, 06, 03, 06, 13 
+               db 06, 03, 06, 06, 06, 03, 06, 13 
+               db 06, 06, 06, 06, 06, 06, 06, 13 
+               db 1f, 1f, 13, 13, 1f, 1f, 13, 13
+
+sprite_carro3  db 13, 13, 13, 13, 13, 13, 13, 13 
+               db 13, 13, 13, 13, 13, 13, 13, 13 
+               db 04, 04, 04, 04, 04, 04, 04, 13 
+               db 04, 03, 04, 04, 04, 03, 04, 13 
+               db 04, 03, 04, 04, 04, 03, 04, 13 
+               db 04, 03, 04, 04, 04, 03, 04, 13 
+               db 04, 04, 04, 04, 04, 04, 04, 13 
+               db 1f, 1f, 13, 13, 1f, 1f, 13, 13
+
 
 mapaJuego 	db 3e8 dup (00)
 
@@ -1036,7 +1076,141 @@ error4:
 
 
 infinito:
+
+
+		
+
+		mov AH,01
+		int 16
+		jz infinito_ret
+		mov AH,00
+		int 16
+		cmp AH,01
+		je menu_pausa_juego
+		cmp AH,47
+		je mover_jugador_arriba
+		cmp AH,4f
+		je mover_jugador_abajo
+		cmp AH,53
+		je mover_jugador_izquierda
+		cmp AH,51
+		je mover_jugador_derecha
+		jmp infinito_ret
+mover_jugador_arriba:
+		mov SI,[x_jugador]
+		mov DI,[y_jugador]
+		dec DI
+		;cmp DI,0000
+		;jg mover_jugador_arriba2
+		;mov DI,0001
+mover_jugador_arriba2:
+		call mover_jugador
+		jmp infinito_ret
+mover_jugador_abajo:
+		mov SI,[x_jugador]
+		mov DI,[y_jugador]
+		inc DI
+		cmp DI,0018
+		jb mover_jugador_abajo2
+		mov DI,0017
+mover_jugador_abajo2:
+		call mover_jugador
+		jmp infinito_ret
+mover_jugador_izquierda:
+		mov SI,[x_jugador]
+		mov DI,[y_jugador]
+		dec SI
+		cmp SI,0000
+		jge mover_jugador_izquierda2
+		mov SI,0000
+mover_jugador_izquierda2:
+		call mover_jugador
+		jmp infinito_ret
+mover_jugador_derecha:
+		mov SI,[x_jugador]
+		mov DI,[y_jugador]
+		inc SI
+		cmp SI,0027
+		jle mover_jugador_derecha2
+		mov SI,0027
+mover_jugador_derecha2:
+		call mover_jugador
+		jmp infinito_ret
+
+
+
+
+
+
+infinito_ret:
+verificar_posJugador:
+		mov BX,[y_jugador]
+		cmp BX,0001
+		jne verificar_posJugador2
+		mov DI, [y_jugador]
+		mov SI,[x_jugador]
+		mov DI, 0017
+		mov SI, 0014
+		call mover_jugador ;;muevo jugador al inicio
+
+		mov DI, offset puntaje_tempD ;;calculo puntaje
+		mov SI, offset vidasD
+		mov CL,[SI]
+		cmp CL,03
+		jnz aumentar_puntos2
+		mov BX,0064
+		mov AX, [DI]
+		add AX,BX
+		mov [DI],AX
+		jmp aumentar_puntos3
+aumentar_puntos2:
+		mov AX,0019
+		mov SI,offset vidasD
+		mov CL,[SI]
+		mov CH,00
+		mul CX
+		mov BX,[DI]
+		add BX,AX
+		mov [DI],BX
+
+
+aumentar_puntos3:
+		mov DI, offset puntaje_tempD
+		mov SI, offset puntaje_temp
+		call num_toAscii
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+
+		mov DX,offset puntaje_temp
+		mov AH,09
+		int 21
+
+		mov DI, offset vidasD
+		mov BL,[DI]
+		add BL,"0"
+		mov SI, offset vidas
+		mov [SI],BL
+		mov DH,00
+		mov DL,10
+		mov BH,00
+		mov AH,02
+		int 10
+		mov DX, offset vidas
+		mov AH,09
+		int 21
+
+
+
+verificar_posJugador2:
+
 		call imprimir_mapa
+		;mov SI,0018
+		;call sub_ret
+
+infinito_final:
 		jmp infinito
 		jmp fin
 
@@ -1084,6 +1258,159 @@ iniciar_juego:
 		jmp infinito
 		
 
+menu_pausa_juego:
+		call limpiar_pantalla
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+
+		mov DX, offset m_pausa1
+		mov AH,09
+		int 21
+
+		mov DX, offset m_pausa2
+		mov AH,09
+		int 21
+
+		mov AH,00
+		int 16
+
+		cmp AH,3b
+		je resumir_juego
+		cmp AH,3c 
+		je menu_resumenJuego 
+
+		jmp menu_resumenJuego
+
+
+menu_resumenJuego:
+		call limpiar_pantalla
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+
+		mov DX, offset menu1_m1
+		mov AH,09
+		int 21
+
+		mov DX, offset menu1_m2
+		mov AH,09
+		int 21
+
+		mov DX, offset menu1_m3
+		mov AH,09
+		int 21
+
+		mov DX, offset menu1_m4
+		mov AH,09
+		int 21
+
+		mov DX, offset menu1_m5
+		mov AH,09
+		int 21
+
+		mov DX, offset menu1_m6
+		mov AH,09
+		int 21
+
+		mov DX, offset menu1_m7
+		mov AH,09
+		int 21
+
+		mov DX, offset menu1_m8
+		mov AH,09
+		int 21
+
+		mov AH,00
+		int 16
+
+		cmp AH,3b
+		je iniciar_juego
+		cmp AH,3c 
+		je ultimasPartidas
+		cmp AH,3d 
+		je estadisticasUsuarios
+		cmp AH,3e 
+		je ordenamiento
+		cmp AH,3f 
+		je promoverUsuarios
+		cmp AH,40 
+		je cerrar_sesion
+		cmp AH,41
+		je desbloquear_usuarios
+		cmp AH,42
+		je resumir_juego
+
+
+		jmp menuAdmin_original
+
+resumir_juego:
+		call limpiar_pantalla
+		;;call reiniciar_mapa
+
+		mov DH,00
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+		mov DX, offset puntaje_temp
+		mov AH,09
+		int 21
+
+		mov DH,00
+		mov DL,10
+		mov BH,00
+		mov AH,02
+		int 10
+		mov DX, offset vidas
+		mov AH,09
+		int 21
+
+		mov DH,18
+		mov DL,00
+		mov BH,00
+		mov AH,02
+		int 10
+		mov DX, offset user_temp2
+		mov AH,09
+		int 21
+
+		mov DH,18
+		mov DL,14
+		mov BH,00
+		mov AH,02
+		int 10
+		mov DX, offset fechaHora
+		mov AH,09
+		int 21
+
+
+		jmp infinito_ret
+
+
+
+;; SI -x
+;; DI - y
+
+mover_jugador:
+		push SI
+		push DI
+		mov CL, CARRIL
+		mov SI, [x_jugador]
+		mov DI, [y_jugador]
+		call colocar_mapa
+		pop DI
+		pop SI
+		mov CL,JUGADOR
+		call colocar_mapa
+
+		mov [x_jugador],SI
+		mov [y_jugador],DI
+		ret
 
 
 
@@ -1198,7 +1525,22 @@ reiniciar_mapa2:
 		mov DI,0017
 		mov CL,01
 		call colocar_mapa
-		
+
+		mov SI,0010
+		mov DI,0010
+		mov CL,CARRO1
+		call colocar_mapa
+
+		mov SI,0011
+		mov DI,0011
+		mov CL,CARRO2
+		call colocar_mapa
+
+		mov SI,0012
+		mov DI,0012
+		mov CL,CARRO3
+		call colocar_mapa
+
 		ret
 
 
@@ -1254,6 +1596,12 @@ imprimir_mapa3:
 		je pintar_acera
 		cmp CL, CARRIL
 		je pintar_carril
+		cmp CL,CARRO1
+		je pintar_carro1
+		cmp CL,CARRO2
+		je pintar_carro2
+		cmp CL,CARRO3
+		je pintar_carro3
 imprimir_mapa4:
 		pop DI
 		pop SI
@@ -1288,6 +1636,28 @@ pintar_carril:
 		call pintar_sprite
 		pop BP
 		jmp imprimir_mapa4
+
+pintar_carro1:
+		mov BX, offset sprite_carro1
+		push BP
+		call pintar_sprite
+		pop BP
+		jmp imprimir_mapa4
+
+pintar_carro2:
+		mov BX, offset sprite_carro2
+		push BP
+		call pintar_sprite
+		pop BP
+		jmp imprimir_mapa4
+	
+pintar_carro3:
+		mov BX, offset sprite_carro3
+		push BP
+		call pintar_sprite
+		pop BP
+		jmp imprimir_mapa4
+
 
 ;;SI- nn
 ;;salida: si -? di- ?
@@ -1827,6 +2197,60 @@ limpiar_buff_archivoLeer2:
 limpiar_buff_archivoLeer3:
         ret
 
+
+;;DI donde tengo el numero a convertir
+;;SI donde guardar el resultado
+
+num_toAscii:
+        mov AX,[DI]
+        mov CX,0000
+        cmp AX,09F6
+        ja error_division
+        cmp AX,000a
+        jae ciclo_num_toAscii
+        add AL,"0"
+        mov [SI],AL
+        inc SI
+        mov AL,"$"
+        mov [SI],AL
+        ret
+
+ciclo_num_toAscii:
+        mov BL,0a
+        div BL
+        mov DX,0000
+        add AH,"0"
+        mov DL,AH
+        push DX
+        inc CL
+        mov AH,00
+        cmp AL,0a 
+        jae ciclo_num_toAscii
+        add AL,"0"
+        mov DX,0000
+        mov DL,AL
+        push DX
+        inc CL
+        ;;guardar el numero en SI
+ciclo_guardarAscii:
+        mov AX,0000
+        pop AX
+        mov [SI],AL
+        inc SI
+        loop ciclo_guardarAscii
+        mov AL,"$"
+        mov [SI],AL
+        ret
+
+        
+error_division:
+        ;mov dx, offset mensajeE_div
+        ;mov AH,09
+        ;int 21
+		int 03
+        mov AL,"$"
+        mov [SI],AL
+        ret
 
 
 fin_mensaje:
