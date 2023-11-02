@@ -35,8 +35,10 @@ usuarioAdmin_original db "rcarcuz$"
 contraAdmin_original db "202010044A*$"
 
 file_users db "USRS.ACE",00
+file_scores db "PUNTOS.ACE",00
 
 handler dw 0000
+handler2 dw 0000
 
 
 m_error0 db "No se pudo abrir el archivo",0a,"$"
@@ -48,7 +50,7 @@ m_error5 db "No se pudo leer el archivo",0a,"$"
 m_esc_true db "Se logro registrar al nuevo usuario",0a,"$"
 
 mensajeE_div db "No se pueden mostrar numeros mas grandes que 2550",0a,"$"
-
+m_saltoLinea db 0a,"$"
 
 intentoContra db 00
 
@@ -117,6 +119,7 @@ m_pausa2 db "F2 Volver a Menu Usuario",0a,"$"
 
 m_gameOver1 db "Game Over",0a,"$"
 m_gameOver2 db "Puntaje: ",0a,"$"
+m_gameOver3 db "Tiempo: ",0a,"$"
 
 m_registrar db "reg",0a,"$"
 m_salir db "Saliendo del Programa",0a,"$"
@@ -126,6 +129,7 @@ mensaje_nose db "nose :/$"
 puntaje_temp db "0$",00,00,00,00,00
 
 puntaje_tempD dw 0000
+tiempoJuegoD dw 0000
 
 vidasD db 03
 
@@ -133,6 +137,9 @@ vidas db "3 vidas$"
 
 vel2 db 00
 vel1 db 00
+
+
+tiempoJuego db 00,00,00,00,00,00,00
 
 usuario_juego db "Rami:D 123456789$"
 
@@ -1033,7 +1040,7 @@ escribir_usuario2:
 		mov DX, offset user_temp
 		mov AH,40
 		int 21
-
+		
 		jc error3
 escribir_usuario3:
 		mov BX,handler
@@ -1055,6 +1062,62 @@ escribir_usuario3:
 
 		
 
+		ret
+
+escribir_puntuacion:
+		mov AL,02
+		mov DX,offset file_scores
+		mov AH,3d 
+		int 21
+		jc crear_archivo_puntuacion
+		mov handler2,AX
+		jmp escribir_puntuacion2
+crear_archivo_puntuacion:
+		mov CX,0000
+		mov DX, offset file_scores
+		mov AH,3c 
+		int 21
+		jc error1
+		mov handler2,AX
+		jmp escribir_puntuacion2
+escribir_puntuacion2:
+		mov AL,02
+		mov BX,handler2
+		mov CX,0000
+		mov DX,0000
+		mov AH,42
+		int 21
+		jc error2
+
+		mov BX,handler2 
+		mov CX,0014
+		mov DX, offset user_temp2
+		mov AH,40
+		int 21
+
+		jc error3
+
+		mov BX,handler2 
+		mov CX,0002
+		mov DX, offset puntaje_tempD
+		mov AH,40
+		int 21
+
+		jc error3
+
+		mov BX,handler2 
+		mov CX,0002
+		mov DX, offset tiempoJuegoD
+		mov AH,40
+		int 21
+
+		jc error3
+escribir_puntuacion3:
+		mov BX,handler2
+		mov AH,3e
+		int 21 
+		jc error4
+		;;call limpiar_pantalla
 		ret
 
 
@@ -1226,6 +1289,7 @@ verificarVel_carro2_1:
 		jne verificarVel_carro2_2
 		call mover_carros2_1D
 		call mover_carros2_1I
+		call actualizar_tiempoJuego
 		mov BL,00
 		mov SI, offset vel2
 		mov [SI],BL
@@ -1253,6 +1317,8 @@ verificarVel_carro1_2:
 		inc BL
 		mov [SI],BL		
 verificarVel_fin:	
+
+
 		  
 		call imprimir_mapa
 		;mov SI,0018
@@ -1285,6 +1351,21 @@ iniciar_juego:
 		inc SI
 		mov AL,"$"
 		mov [SI],AL
+
+		mov SI, offset tiempoJuegoD
+		mov AX,0000
+		mov [SI],AX
+
+		mov SI, offset tiempoJuego
+		mov AL,"0"
+		mov [SI],AL
+		inc SI
+		mov AL,"$"
+		mov [SI],AL
+
+		mov SI,0014
+		mov DI,0017
+		call mover_jugador
 
 		mov DH,00
 		mov DL,00
@@ -1460,6 +1541,24 @@ resumir_juego:
 		jmp infinito_ret
 
 
+actualizar_tiempoJuego:
+		mov DI, offset tiempoJuegoD
+		mov SI, offset tiempoJuego
+		call num_toAscii
+		mov BX,[DI]
+		inc BX
+		mov [DI],BX
+
+		mov DH,00
+		mov DL,21
+		mov BH,00
+		mov AH,02
+		int 10
+		mov DX, offset tiempoJuego
+		mov AH,09
+		int 21
+
+		ret
 
 ;; SI -x
 ;; DI - y
@@ -1536,6 +1635,20 @@ mostrar_gameOver:
 		mov AH,09
 		int 21
 
+		mov DX, offset m_saltoLinea
+		mov AH,09
+		int 21
+
+		mov DX, offset m_gameOver3
+		mov AH,09
+		int 21
+
+		mov DX, offset tiempoJuego
+		mov AH,09
+		int 21
+
+		call escribir_puntuacion
+		
 		mov SI,1c1d 
 		call sub_ret
 		jmp comprobar_rol
