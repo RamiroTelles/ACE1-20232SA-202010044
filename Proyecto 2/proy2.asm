@@ -131,6 +131,9 @@ vidasD db 03
 
 vidas db "3 vidas$"
 
+vel2 db 00
+vel1 db 00
+
 usuario_juego db "Rami:D 123456789$"
 
 fechaHora db "xx/xx/xxxx xx:xx:xx$"
@@ -1215,10 +1218,42 @@ aumentar_puntos3:
 verificar_posJugador2:
 		call mover_carros3_1I
 		call mover_carros3_1D
+
+verificarVel_carro2_1:
+		mov SI,offset vel2
+		mov BL,[SI]
+		cmp BL,02
+		jne verificarVel_carro2_2
 		call mover_carros2_1D
 		call mover_carros2_1I
+		mov BL,00
+		mov SI, offset vel2
+		mov [SI],BL
+		jmp verificarVel_carro1_1
+verificarVel_carro2_2:
+		mov SI, offset vel2
+		mov BL,[SI]
+		inc BL
+		mov [SI],BL
+
+verificarVel_carro1_1:
+		mov SI,offset vel1
+		mov BL,[SI]
+		cmp BL,03
+		jne verificarVel_carro1_2
 		call mover_carros1_1I
-		call mover_carros1_1D   
+		call mover_carros1_1D
+		mov BL,00
+		mov SI, offset vel1
+		mov [SI],BL 
+		jmp verificarVel_fin
+verificarVel_carro1_2:
+		mov SI, offset vel1
+		mov BL,[SI]
+		inc BL
+		mov [SI],BL		
+verificarVel_fin:	
+		  
 		call imprimir_mapa
 		;mov SI,0018
 		;call sub_ret
